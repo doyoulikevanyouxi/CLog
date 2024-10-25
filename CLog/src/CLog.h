@@ -3,12 +3,22 @@
 #include <map>
 #include <iostream>
 #include "Global.h"
+#include <fstream>
 #ifdef CLOG_PLATFORM_WINDOWS
 	#include <Windows.h>
 	#define SETCONSOLECOLOR(COLOR) SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), COLOR)
 #else 
 	#define  SETCONSOLECOLOR(COLOR) 
 #endif // CLOG_PLATFORM_WINDOWS
+//写入数据到文件中
+#define WRITE(data) Write(data)
+//立即写入数据到文件中
+#define WRITEIMMEDIATE(data) Write(data);file.flush()
+//输出字符串
+//因为有无缓冲输出等形式所以用宏来代替
+#define CONSOLE(STR) std::cout<<STR
+
+
 
 /// <summary>
 /// CLog 用于日志记录，日志的等级目前分为三个，正常，警告和错误。
@@ -17,6 +27,9 @@
 namespace CL {
 	class CLOG_API CLog
 	{
+	public:
+		CLog(const char* filePath = nullptr) noexcept;
+		~CLog() noexcept;
 	public:
 		/// <summary>
 		/// 日志等级
@@ -29,6 +42,7 @@ namespace CL {
 			Error
 		};
 	public:
+		inline bool FileIsOpen() noexcept { return file.is_open(); }
 		/// <summary>
 		/// 日志系统的主要调用部分，用于记录日志
 		/// </summary>
@@ -53,7 +67,13 @@ namespace CL {
 		/// <param name="...args"></param>
 		template<typename _T, typename ...Args>
 		void MutiParamToString(_T value, Args ...args);
+		void Write(const char* str);
 	private:
+		/// <summary>
+		/// 文件路径
+		/// </summary>
+		std::string filePath;
+		std::fstream file;
 		/// <summary>
 		/// 参数包的映射，unsigned int 指明在第几个，与format中数字对应
 		/// </summary>
@@ -69,9 +89,7 @@ namespace CL {
 	{
 		MutiParamToString(args...);
 		std::string str;
-		//虽然不怎么追求性能但还是尽可能的减少内存的再分配
-		str.resize(sizeof(format));
-		str += Time() + " ";
+		str = Time() + " ";
 		bool pairStatus = false;
 		std::string stValue;
 		//此处开始进行文本的填充
@@ -127,6 +145,9 @@ namespace CL {
 				str += *format;
 			}
 		}
+
+		str += "\n";
+		WRITEIMMEDIATE(str.c_str());
 		switch (level)
 		{
 		case CL::CLog::Normal:
@@ -148,8 +169,8 @@ namespace CL {
 		default:
 			break;
 		}
-		str += "\n";
-		std::cout << str;
+	
+		CONSOLE(str);
 		//恢复白色文本
 		SETCONSOLECOLOR(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 		index = 0;
