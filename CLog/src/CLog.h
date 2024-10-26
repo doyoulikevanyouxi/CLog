@@ -10,6 +10,11 @@
 #else 
 	#define  SETCONSOLECOLOR(COLOR) 
 #endif // CLOG_PLATFORM_WINDOWS
+
+///以下宏在使用头文件后重新定义为空可控制log的输出形式，
+///重定义 "#define WRITE(data)" 使得无法将数据输出到文件中
+///同理，重定义 "#define CONSOLE(STR)" 使得数据无法输出到控制台中
+
 //写入数据到文件中
 #define WRITE(data) Write(data)
 //立即写入数据到文件中
@@ -90,11 +95,22 @@ namespace CL {
 		MutiParamToString(args...);
 		std::string str;
 		str = Time() + " ";
+		//标志量---是否进入占位符匹配模式
 		bool pairStatus = false;
+		//标志量---该标志量用于转义 占位符 '{'和 '}' 两个符合，当使用'$'时会忽略字符匹配不进行字符验证
+		//例如 "${ $}" 的输出为"{}" ,"$x"的输出为"x","$$"的输出为"$"
+		bool transStatus = false;
 		std::string stValue;
 		//此处开始进行文本的填充
+		
 		for (; *format != '\0'; ++format) {
-
+			if (transStatus) {
+				goto SAVE;
+			}
+			if (*format == '$') {
+				transStatus = true;
+				continue;
+			}
 			if (*format == '{') {
 				if (pairStatus) {
 					//如果已经进入了匹配模式，那么就表明之前匹配的无效
@@ -135,6 +151,9 @@ namespace CL {
 				}
 				continue;
 			}
+		SAVE:
+			if (transStatus)
+				transStatus = false;
 
 			if (pairStatus) {
 				//进入匹配模式，在{}之间的字符将单独存储
@@ -148,6 +167,8 @@ namespace CL {
 
 		str += "\n";
 		WRITEIMMEDIATE(str.c_str());
+
+#ifdef CLOG_PLATFORM_WINDOWS
 		switch (level)
 		{
 		case CL::CLog::Normal:
@@ -169,10 +190,12 @@ namespace CL {
 		default:
 			break;
 		}
-	
+#endif
 		CONSOLE(str);
+#ifdef CLOG_PLATFORM_WINDOWS
 		//恢复白色文本
 		SETCONSOLECOLOR(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+#endif
 		index = 0;
 		pMap.clear();
 	}
