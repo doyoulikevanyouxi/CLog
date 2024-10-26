@@ -47,6 +47,8 @@ namespace CL {
 			Error
 		};
 	public:
+		bool SetSavePath(const char* path);
+	public:
 		inline bool FileIsOpen() noexcept { return file.is_open(); }
 		/// <summary>
 		/// 日志系统的主要调用部分，用于记录日志
@@ -92,7 +94,8 @@ namespace CL {
 	template<typename ...Args>
 	inline void CLog::Log(LogLevel level, const char* format, Args ...args)
 	{
-		MutiParamToString(args...);
+		if constexpr (sizeof...(args) > 0)
+			MutiParamToString(args...);
 		std::string str;
 		str = Time() + " ";
 		//标志量---是否进入占位符匹配模式

@@ -11,6 +11,14 @@ CL::CLog::~CLog() noexcept
 {
     file.close();
 }
+bool CL::CLog::SetSavePath(const char* path)
+{
+    if (file.is_open())
+        file.close();
+    this->filePath = path;
+    file.open(this->filePath, std::fstream::app | std::fstream::out);
+    return file.is_open();
+}
 std::string& CL::CLog::Time() noexcept
 {
     static std::string timeStr;
